@@ -4,20 +4,28 @@ from collections import deque
 import heapq
 import os
 
-width = 600 # screen width
-height = 600 # screen height
-rows = 15 # grid rows
+width = 600 
+height = 600 
+rows = 15 
 box_size = width // rows 
-
-title = "GOOD PERFORMANCE TIME APP" # window title
+Q
+title = "GOOD PERFORMANCE TIME APP" # Required title 
 
 white, black = (255, 255, 255), (0, 0, 0)
 green, red = (0, 255, 0), (255, 0, 0) 
 blue, yellow = (0, 0, 255), (255, 255, 0) 
 gray = (200, 200, 200) 
 
-# move order for neighbors
-directions = [(-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1)]
+# STRICT Black-Text Movement Order [cite: 31-37]
+# 1. Up, 2. Right, 3. Bottom, 4. Bottom-Right (Diag), 5. Left, 6. Top-Left (Diag)
+directions = [
+    (-1, 0),  # 1. Up
+    (0, 1),   # 2. Right
+    (1, 0),   # 3. Bottom
+    (1, 1),   # 4. Bottom-Right
+    (0, -1),  # 5. Left
+    (-1, -1)  # 6. Top-Left
+]
 
 class box:
     def __init__(self, r, c):
@@ -27,7 +35,7 @@ class box:
         self.cost = float('inf')
 
 def show_menu():
-    os.system('cls' if os.name == 'nt' else 'clear') # clearing terminal
+    os.system('cls' if os.name == 'nt' else 'clear') 
     print("--- ai pathfinder menu ---")
     print(" 1: bfs \n 2: dfs \n 3: ucs \n 4: dls \n 5: iddfs \n 6: bidirectional")
     print("\n--------------------------")
@@ -38,37 +46,36 @@ def draw_grid(win, grid, start, target, frontier, explored, path):
     for row in grid:
         for b in row:
             color = white
-            if b.is_wall: color = black # coloring walls black
-            if explored and b in explored: color = gray # coloring visited nodes
-            if frontier and b in frontier: color = yellow # coloring frontier nodes
-            if path and b in path: color = blue # highlighting final path
+            if b.is_wall: color = black 
+            if explored and b in explored: color = gray 
+            if frontier and b in frontier: color = yellow 
+            if path and b in path: color = blue 
             if b == start: color = green
             if b == target: color = red
             pygame.draw.rect(win, color, (b.c * box_size, b.r * box_size, box_size, box_size))
             pygame.draw.rect(win, (210, 210, 210), (b.c * box_size, b.r * box_size, box_size, box_size), 1)
-    pygame.display.update() # refreshing display
+    pygame.display.update() 
 
 def reset_search_data(grid):
-    # cleaning path data but keeping walls
     for row in grid:
         for b in row:
             b.parent = None
             b.cost = float('inf')
 
 def get_path(node):
-    p = [] # making path list
+    p = [] 
     while node:
         p.append(node)
-        node = node.parent # moving to parent
+        node = node.parent 
     return p
 
-# --- search logic ---
+# --- search algorithms  ---
 
 def run_bfs(win, grid, start, target):
     q = deque([start]) 
     vis = {start}
     while q:
-        curr = q.popleft() # popping from front
+        curr = q.popleft() 
         if curr == target: return get_path(curr)
         for dr, dc in directions:
             r, c = curr.r + dr, curr.c + dc
@@ -76,14 +83,14 @@ def run_bfs(win, grid, start, target):
                 if grid[r][c] not in vis:
                     grid[r][c].parent = curr
                     vis.add(grid[r][c]); q.append(grid[r][c])
-        draw_grid(win, grid, start, target, q, vis, None); time.sleep(0.01) # animating search
+        draw_grid(win, grid, start, target, q, vis, None); time.sleep(0.01)
     return None
 
 def run_dfs(win, grid, start, target):
     s = [start] 
     vis = {start}
     while s:
-        curr = s.pop() # popping from end
+        curr = s.pop() 
         if curr == target: return get_path(curr)
         for dr, dc in directions:
             r, c = curr.r + dr, curr.c + dc
@@ -98,7 +105,7 @@ def run_ucs(win, grid, start, target):
     pq = [(0, id(start), start)] 
     start.cost = 0; vis = {start}
     while pq:
-        c, _, curr = heapq.heappop(pq) # popping lowest cost
+        c, _, curr = heapq.heappop(pq) 
         if curr == target: return get_path(curr)
         for dr, dc in directions:
             r, c = curr.r + dr, curr.c + dc
@@ -111,26 +118,26 @@ def run_ucs(win, grid, start, target):
 
 def run_dls(win, grid, start, target, limit, vis):
     if start == target: return get_path(start)
-    if limit <= 0: return None # stopping at depth limit
+    if limit <= 0: return None 
     vis.add(start)
     for dr, dc in directions:
         r, c = start.r + dr, start.c + dc
         if 0 <= r < rows and 0 <= c < rows and not grid[r][c].is_wall:
             if grid[r][c] not in vis:
                 grid[r][c].parent = start
-                res = run_dls(win, grid, grid[r][c], target, limit - 1, vis) # recursing deeper
+                res = run_dls(win, grid, grid[r][c], target, limit - 1, vis) 
                 if res: return res
     return None
 
 def run_iddfs(win, grid, start, target):
-    for d in range(rows * rows): # looping through depths
+    for d in range(rows * rows): 
         reset_search_data(grid)
         res = run_dls(win, grid, start, target, d, set())
         if res: return res
     return None
 
 def run_bidir(win, grid, start, target):
-    q1, q2 = deque([start]), deque([target]) # starting from both ends
+    q1, q2 = deque([start]), deque([target]) 
     v1, v2 = {start: None}, {target: None}
     while q1 and q2:
         c1 = q1.popleft() 
@@ -151,13 +158,13 @@ def run_bidir(win, grid, start, target):
     return None
 
 def build(node, v1, v2):
-    p = [] # joining both paths
-    c = node
-    while c: p.append(c); c = v1[c]
-    p.reverse()
-    c = v2[node]
-    while c: p.append(c); c = v2[c]
-    return p
+    p1, p2 = [], []
+    curr = node
+    while curr: p1.append(curr); curr = v1[curr]
+    p1.reverse()
+    curr = v2[node]
+    while curr: p2.append(curr); curr = v2[curr]
+    return p1 + p2
 
 def main():
     pygame.init() 
@@ -172,7 +179,7 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT: run = False
             
-            if pygame.mouse.get_pressed()[0]: # capturing mouse clicks
+            if pygame.mouse.get_pressed()[0]: 
                 pos = pygame.mouse.get_pos()
                 r, c = pos[1] // box_size, pos[0] // box_size
                 if 0 <= r < rows and 0 <= c < rows:
@@ -181,13 +188,13 @@ def main():
                     elif grid[r][c] not in [start, target]: grid[r][c].is_wall = True
             
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_c: # resetting everything
+                if event.key == pygame.K_c: 
                     start = target = path = None
                     grid = [[box(r, c) for c in range(rows)] for r in range(rows)]
                     show_menu()
                 
                 if start and target:
-                    reset_search_data(grid) # cleaning before new search
+                    reset_search_data(grid) 
                     if event.key == pygame.K_1: path = run_bfs(win, grid, start, target)
                     if event.key == pygame.K_2: path = run_dfs(win, grid, start, target)
                     if event.key == pygame.K_3: path = run_ucs(win, grid, start, target)
